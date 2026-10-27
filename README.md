@@ -1,4 +1,4 @@
-# `ipscope-sdk` — Official IPScope Server-Side Java SDK
+# `ipscope-sdk` - Official IPScope Server-Side Java SDK
 
 Official zero-dependency, thread-safe, strictly typed server-side **Java 17+ SDK** (`io.ipscope:ipscope-sdk`) for the **IPScope IP Intelligence Platform**, supporting both **Synchronous** and **Asynchronous (`CompletableFuture`)** execution.
 
@@ -8,7 +8,7 @@ Official zero-dependency, thread-safe, strictly typed server-side **Java 17+ SDK
 
 ## Features
 
-- **Zero External Runtime Dependencies**: Built entirely on Java 17 standard library (`java.net.http.HttpClient`, Java `record` classes, `CompletableFuture`) with a built-in RFC 8259 JSON codec — eliminating Jackson/Gson version conflicts in Spring Boot, Quarkus, Micronaut, or standalone services.
+- **Zero External Runtime Dependencies**: Built entirely on Java 17 standard library (`java.net.http.HttpClient`, Java `record` classes, `CompletableFuture`) with a built-in RFC 8259 JSON codec - eliminating Jackson/Gson version conflicts in Spring Boot, Quarkus, Micronaut, or standalone services.
 - **Both Sync & Async Operations**:
   - Synchronous methods: `lookupIp`, `lookupIpWithMeta`, `lookupCallerIp`, `lookupBatch`, `lookupBatchChunked`, `lookupBatchStream` (`Stream<BatchLookupResponse>`), `lookupNetwork`, `getDatasetsMetadata`, `submitFeedback`, `getStatus`.
   - Asynchronous methods (`CompletableFuture`): `lookupIpAsync`, `lookupIpWithMetaAsync`, `lookupCallerIpAsync`, `lookupBatchAsync`, `lookupBatchChunkedAsync`, `lookupNetworkAsync`, `getDatasetsMetadataAsync`, `submitFeedbackAsync`, `getStatusAsync`.
