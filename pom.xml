@@ -11,6 +11,28 @@
 
     <name>IPScope Java Server-Side SDK</name>
     <description>Official zero-dependency, type-safe Sync &amp; Async Java 17+ Server-Side SDK for the IPScope IP Intelligence Platform.</description>
+    <url>https://ipscope.io/docs/sdks/java</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/ipscope-io/ipscope-java</url>
+        <connection>scm:git:git://github.com/ipscope-io/ipscope-java.git</connection>
+        <developerConnection>scm:git:ssh://github.com:ipscope-io/ipscope-java.git</developerConnection>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/ipscope-io/ipscope-java</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
