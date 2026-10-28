@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test (Java ${{ matrix.java-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version: ["17", "21"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ matrix.java-version }}
+
+      - name: Compile SDK & Test Suite
+        run: |
+          mkdir -p build/classes/main build/classes/test
+          javac -encoding UTF-8 --release 17 -d build/classes/main src/main/java/io/ipscope/sdk/*.java
+          javac -encoding UTF-8 --release 17 -cp build/classes/main -d build/classes/test src/test/java/io/ipscope/sdk/*.java
+
+      - name: Run Verification Suite
+        run: java -cp build/classes/main:build/classes/test io.ipscope.sdk.IpScopeClientTest
