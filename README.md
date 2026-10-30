@@ -50,7 +50,7 @@ import java.util.List;
 
 public class Example {
     public static void main(String[] args) {
-        IpScopeClient client = new IpScopeClient("ips_live_your_api_key_here");
+        IpScopeClient client = new IpScopeClient("<public>:<private>");
 
         // 1. Single IPv4 or IPv6 lookup (cached automatically in LRU cache)
         IpLookupResponse ipInfo = client.lookupIp("8.8.8.8");
@@ -89,7 +89,7 @@ import java.util.List;
 
 public class AsyncExample {
     public static void main(String[] args) {
-        IpScopeClient client = IpScopeClient.builder("ips_live_your_api_key_here")
+        IpScopeClient client = IpScopeClient.builder("<public>:<private>")
                 .timeout(Duration.ofSeconds(5))
                 .build();
 
