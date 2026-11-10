@@ -20,27 +20,97 @@
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <id>ipscope</id>
+            <name>IPScope</name>
+            <organization>IPScope</organization>
+            <organizationUrl>https://ipscope.io</organizationUrl>
+        </developer>
+    </developers>
+
     <scm>
         <url>https://github.com/ipscope-io/ipscope-java</url>
-        <connection>scm:git:git://github.com/ipscope-io/ipscope-java.git</connection>
-        <developerConnection>scm:git:ssh://github.com:ipscope-io/ipscope-java.git</developerConnection>
+        <connection>scm:git:https://github.com/ipscope-io/ipscope-java.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/ipscope-io/ipscope-java.git</developerConnection>
     </scm>
 
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/ipscope-io/ipscope-java</url>
-        </repository>
-    </distributionManagement>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/ipscope-io/ipscope-java/issues</url>
+    </issueManagement>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <!-- Zero external runtime dependencies: avoids Jackson/Gson classpath conflicts -->
     <dependencies/>
+
+    <profiles>
+        <!-- Maven Central wants sources, javadoc and a signature next to the jar.
+             `mvn -Prelease deploy` builds all three and hands them to the Central Portal. -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.2</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
