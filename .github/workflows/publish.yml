@@ -37,12 +37,8 @@ jobs:
             exit 1
           fi
 
-      - name: Compile & Run Verification Suite
-        run: |
-          mkdir -p build/classes/main build/classes/test
-          javac -encoding UTF-8 --release 17 -d build/classes/main src/main/java/io/ipscope/sdk/*.java
-          javac -encoding UTF-8 --release 17 -cp build/classes/main -d build/classes/test src/test/java/io/ipscope/sdk/*.java
-          java -cp build/classes/main:build/classes/test io.ipscope.sdk.IpScopeClientTest
+      - name: Build & Run Test Suite
+        run: mvn -B -ntp verify
 
       - name: Deploy to Maven Central
         env:
