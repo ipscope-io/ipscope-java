@@ -17,7 +17,6 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +37,8 @@ final class HttpTransport {
     public static final String DEFAULT_BASE_URL = "https://api.ipscope.io";
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
     public static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024; // 2 MiB hard ceiling
-    public static final String SDK_USER_AGENT = "ipscope-java/1.0.0";
+    public static final String SDK_VERSION = "1.1.0";
+    public static final String SDK_USER_AGENT = "ipscope-java/" + SDK_VERSION;
 
     record TransportResponse(Map<String, Object> parsedBody, int status, RateLimitMetadata rateLimit) {}
 
@@ -360,13 +360,12 @@ final class HttpTransport {
     }
 
     static RateLimitMetadata parseRateLimitHeaders(HttpHeaders headers) {
-        return new RateLimitMetadata(
+        // X-RateLimit-Reset is the number of seconds until the window resets (not an epoch).
+        return RateLimitMetadata.of(
                 parseIntHeader(headers, "x-ratelimit-limit"),
                 parseIntHeader(headers, "x-ratelimit-remaining"),
                 parseLongHeader(headers, "x-ratelimit-reset"),
-                headers.firstValue("x-ratelimit-scope").orElse(null),
-                parseIntHeader(headers, "x-ratelimit-burst"),
-                parseIntHeader(headers, "x-ratelimit-rps")
+                headers.firstValue("x-ratelimit-scope").map(String::trim).filter(s -> !s.isEmpty()).orElse(null)
         );
     }
 
@@ -405,14 +404,12 @@ final class HttpTransport {
                     return Duration.ofMillis((long) (secs * 1000));
                 }
             } catch (NumberFormatException ignored) {
-                // Fall back to reset epoch
+                // Fall back to X-RateLimit-Reset
             }
         }
-        if (rl.resetEpochSeconds() != null) {
-            long deltaMs = (rl.resetEpochSeconds() * 1000L) - Instant.now().toEpochMilli();
-            if (deltaMs > 0) {
-                return Duration.ofMillis(deltaMs);
-            }
+        Long resetAfter = rl.resetAfterSeconds();
+        if (resetAfter != null && resetAfter > 0) {
+            return Duration.ofSeconds(resetAfter);
         }
         return null;
     }

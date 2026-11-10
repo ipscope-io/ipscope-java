@@ -126,7 +126,10 @@ final class JsonCodec {
                 asNullableDouble(geoRaw.get("accuracy_radius_km")),
                 asString(geoRaw.get("declared_country_code")),
                 asString(geoRaw.get("physical_country_code")),
-                asNullableBoolean(geoRaw.get("is_virtual_location"))
+                asNullableBoolean(geoRaw.get("is_virtual_location")),
+                asString(geoRaw.get("postal_code")),
+                asNullableDouble(geoRaw.get("latitude")),
+                asNullableDouble(geoRaw.get("longitude"))
         );
 
         NetworkBlock network = new NetworkBlock(
@@ -141,7 +144,8 @@ final class JsonCodec {
                 asNullableBoolean(secRaw.get("is_proxy")),
                 asStringOrDefault(secRaw.get("anonymizer_type"), "unknown"),
                 asDoubleOrDefault(secRaw.get("confidence"), 0.0),
-                asStringList(secRaw.get("reason_codes"))
+                asStringList(secRaw.get("reason_codes")),
+                asNullableBoolean(secRaw.get("is_relay"))
         );
 
         ConnectionBlock connection = connRaw == null ? null : new ConnectionBlock(
@@ -198,22 +202,43 @@ final class JsonCodec {
                     recFamily,
                     asNullableInt(recRaw.get("asn")),
                     asString(recRaw.get("organization")),
-                    firstNonNullString(recRaw.get("country_code"), recRaw.get("countryCode")),
+                    firstNonNullString(recRaw.get("countryCode"), recRaw.get("country_code")),
                     asString(recRaw.get("city")),
-                    firstNonNullString(recRaw.get("location_type"), recRaw.get("locationType")),
-                    firstNonNullBoolean(recRaw.get("is_vpn"), recRaw.get("isVpn")),
-                    firstNonNullBoolean(recRaw.get("is_hosting"), recRaw.get("isHosting")),
-                    firstNonNullBoolean(recRaw.get("is_tor_exit"), recRaw.get("isTorExit")),
-                    firstNonNullBoolean(recRaw.get("is_proxy"), recRaw.get("isProxy")),
-                    firstNonNullString(recRaw.get("anonymizer_type"), recRaw.get("anonymizerType"))
+                    firstNonNullString(recRaw.get("locationType"), recRaw.get("location_type")),
+                    firstNonNullBoolean(recRaw.get("isVpn"), recRaw.get("is_vpn")),
+                    firstNonNullBoolean(recRaw.get("isHosting"), recRaw.get("is_hosting")),
+                    firstNonNullBoolean(recRaw.get("isTorExit"), recRaw.get("is_tor_exit")),
+                    firstNonNullBoolean(recRaw.get("isProxy"), recRaw.get("is_proxy")),
+                    firstNonNullString(recRaw.get("anonymizerType"), recRaw.get("anonymizer_type")),
+                    asString(recRaw.get("subdivision")),
+                    firstNonNullString(recRaw.get("postalCode"), recRaw.get("postal_code")),
+                    asNullableDouble(recRaw.get("latitude")),
+                    asNullableDouble(recRaw.get("longitude")),
+                    asString(recRaw.get("timezone")),
+                    firstNonNullDouble(recRaw.get("geoConfidence"), recRaw.get("geo_confidence")),
+                    firstNonNullDouble(recRaw.get("accuracyRadiusKm"), recRaw.get("accuracy_radius_km")),
+                    firstNonNullBoolean(recRaw.get("isVirtualLocation"), recRaw.get("is_virtual_location")),
+                    firstNonNullString(recRaw.get("connectionType"), recRaw.get("connection_type")),
+                    firstNonNullBoolean(recRaw.get("isRelay"), recRaw.get("is_relay")),
+                    firstNonNullDouble(recRaw.get("securityConfidence"), recRaw.get("security_confidence")),
+                    firstNonNullDouble(recRaw.get("abuseVelocityScore"), recRaw.get("abuse_velocity_score")),
+                    firstNonNullBoolean(recRaw.get("isKnownScanner"), recRaw.get("is_known_scanner")),
+                    asStringList(recRaw.get("reasonCodes") != null ? recRaw.get("reasonCodes") : recRaw.get("reason_codes")),
+                    firstNonNullString(recRaw.get("updatedAt"), recRaw.get("updated_at"))
             );
         }
+        Map<String, Object> lookupRaw = asNullableMap(raw.get("lookup"));
+        String matchedNetwork = asString(raw.get("matched_network"));
+        Integer bgpPrefixLength = asNullableInt(raw.get("bgp_prefix_length"));
         int family = asIntOrDefault(raw.get("family"), 4) == 6 ? 6 : 4;
         return new NetworkPrefixLookupResponse(
                 asStringOrDefault(raw.get("queried_cidr"), ""),
                 family,
                 asStringOrDefault(raw.get("dataset_version"), ""),
-                record
+                record,
+                matchedNetwork,
+                bgpPrefixLength,
+                lookupRaw == null ? null : toIpLookupResponse(lookupRaw)
         );
     }
 
@@ -244,26 +269,37 @@ final class JsonCodec {
         map.put("role", input.role());
         map.put("issue_type", input.issueType());
         map.put("requested_correction", input.requestedCorrection());
-        if (input.evidenceUrls() != null) {
-            map.put("evidence_urls", input.evidenceUrls());
+        if (input.evidenceUrl() != null) {
+            map.put("evidence_url", input.evidenceUrl());
+        }
+        if (input.contactConsent() != null) {
+            map.put("contact_consent", input.contactConsent());
+        }
+        if (input.contactEmail() != null) {
+            map.put("contact_email", input.contactEmail());
         }
         return map;
     }
 
     static FeedbackSubmissionResponse toFeedbackSubmissionResponse(Map<String, Object> raw) {
+        String evidenceUrl = asString(raw.get("evidence_url"));
         Object evRaw = raw.get("evidence_urls");
-        List<String> evUrls = evRaw == null ? null : asStringList(evRaw);
+        List<String> evUrls = evRaw != null
+                ? asStringList(evRaw)
+                : (evidenceUrl != null ? List.of(evidenceUrl) : null);
+        String createdAt = firstNonNullString(raw.get("createdAt"), raw.get("created_at"));
         return new FeedbackSubmissionResponse(
                 asStringOrDefault(raw.get("id"), ""),
                 asStringOrDefault(raw.get("prefix_or_ip"), ""),
-                asStringOrDefault(raw.get("role"), "end_user"),
+                asStringOrDefault(raw.get("role"), "user"),
                 asStringOrDefault(raw.get("issue_type"), "other"),
                 asMap(raw.get("requested_correction")),
-                firstNonNullString(raw.get("created_at"), raw.get("createdAt")) != null
-                        ? firstNonNullString(raw.get("created_at"), raw.get("createdAt"))
-                        : "",
+                createdAt != null ? createdAt : "",
                 asStringOrDefault(raw.get("status"), "pending_review"),
-                evUrls
+                evUrls,
+                evidenceUrl,
+                asNullableBoolean(raw.get("contact_consent")),
+                asString(raw.get("contact_email"))
         );
     }
 
@@ -369,6 +405,11 @@ final class JsonCodec {
     private static Boolean firstNonNullBoolean(Object a, Object b) {
         Boolean ba = asNullableBoolean(a);
         return ba != null ? ba : asNullableBoolean(b);
+    }
+
+    private static Double firstNonNullDouble(Object a, Object b) {
+        Double da = asNullableDouble(a);
+        return da != null ? da : asNullableDouble(b);
     }
 
     private static Integer asNullableInt(Object obj) {

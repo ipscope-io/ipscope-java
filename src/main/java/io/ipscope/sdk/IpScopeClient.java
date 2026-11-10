@@ -344,7 +344,9 @@ public final class IpScopeClient implements AutoCloseable {
                 feedback.role(),
                 feedback.issueType(),
                 feedback.requestedCorrection(),
-                feedback.evidenceUrls()
+                feedback.evidenceUrl(),
+                feedback.contactConsent(),
+                feedback.contactEmail()
         );
         TransportResponse resp = transport.requestSync(
                 "POST",
@@ -643,7 +645,9 @@ public final class IpScopeClient implements AutoCloseable {
                 feedback.role(),
                 feedback.issueType(),
                 feedback.requestedCorrection(),
-                feedback.evidenceUrls()
+                feedback.evidenceUrl(),
+                feedback.contactConsent(),
+                feedback.contactEmail()
         );
         return transport.requestAsync(
                 "POST",

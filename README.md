@@ -27,15 +27,17 @@ Official zero-dependency, thread-safe, strictly typed server-side **Java 17+ SDK
 <dependency>
     <groupId>io.ipscope</groupId>
     <artifactId>ipscope-sdk</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 ### Gradle (`build.gradle.kts`)
 
 ```kotlin
-implementation("io.ipscope:ipscope-sdk:1.0.0")
+implementation("io.ipscope:ipscope-sdk:1.1.0")
 ```
+
+API keys have the form `<public>:<private>` (a UUID, a colon, and a 43-character base64url secret).
 
 ---
 
@@ -46,11 +48,16 @@ import io.ipscope.sdk.IpScopeClient;
 import io.ipscope.sdk.IpScopeModels.BatchLookupResponse;
 import io.ipscope.sdk.IpScopeModels.IpLookupResponse;
 import io.ipscope.sdk.IpScopeModels.NetworkPrefixLookupResponse;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Example {
     public static void main(String[] args) {
         IpScopeClient client = new IpScopeClient("<public>:<private>");
+        List<String> largeIpList = new ArrayList<>();
+        for (int i = 1; i <= 254; i++) {
+            largeIpList.add("192.0.2." + i);
+        }
 
         // 1. Single IPv4 or IPv6 lookup (cached automatically in LRU cache)
         IpLookupResponse ipInfo = client.lookupIp("8.8.8.8");
@@ -73,7 +80,94 @@ public class Example {
 
         // 4. Network CIDR prefix lookup
         NetworkPrefixLookupResponse prefix = client.lookupNetwork("8.8.8.0/24");
-        System.out.println(prefix.queriedCidr() + " (" + prefix.datasetVersion() + ")");
+        System.out.println(prefix.queriedCidr() + " matched " + prefix.matchedNetwork()
+                + " (/" + prefix.bgpPrefixLength() + ") in " + prefix.datasetVersion());
+        if (prefix.record() != null) {
+            System.out.println("record: " + prefix.record().countryCode() + " hosting=" + prefix.record().isHosting());
+        }
+        if (prefix.lookup() != null) {
+            System.out.println("base address city: " + prefix.lookup().geo().city());
+        }
+    }
+}
+```
+
+---
+
+## Reading the Response
+
+```java
+import io.ipscope.sdk.IpScopeClient;
+import io.ipscope.sdk.IpScopeModels.IpLookupResponse;
+
+public class ResponseExample {
+    public static void main(String[] args) {
+        IpScopeClient client = new IpScopeClient("<public>:<private>");
+        IpLookupResponse info = client.lookupIp("8.8.8.8");
+
+        // Representative coordinates (never device GPS) and postal code; null when unknown
+        System.out.println(info.geo().latitude() + ", " + info.geo().longitude() + " " + info.geo().postalCode());
+
+        // Consumer privacy relays (e.g. iCloud Private Relay) are flagged separately from VPN/proxy
+        System.out.println("relay=" + info.security().isRelay() + " vpn=" + info.security().isVpn());
+
+        // Abuse velocity score on a 0-100 scale (present when security_extensions is licensed)
+        if (info.securityExtensions() != null) {
+            System.out.println("abuse score: " + info.securityExtensions().abuseVelocityScore());
+        }
+    }
+}
+```
+
+---
+
+## Rate-Limit Metadata
+
+```java
+import io.ipscope.sdk.IpScopeClient;
+import io.ipscope.sdk.IpScopeModels.IpLookupResponse;
+import io.ipscope.sdk.IpScopeModels.IpScopeResultWithMeta;
+import io.ipscope.sdk.IpScopeModels.RateLimitMetadata;
+
+public class RateLimitExample {
+    public static void main(String[] args) {
+        IpScopeClient client = new IpScopeClient("<public>:<private>");
+        IpScopeResultWithMeta<IpLookupResponse> res = client.lookupIpWithMeta("1.1.1.1");
+
+        // X-RateLimit-Limit / -Remaining / -Reset / -Scope.
+        // resetAfterSeconds() is the number of seconds until the window resets (not an epoch).
+        RateLimitMetadata rl = res.rateLimit();
+        System.out.println(rl.remaining() + "/" + rl.limitPerMinute() + " left, resets in "
+                + rl.resetAfterSeconds() + "s (scope " + rl.scope() + ")");
+    }
+}
+```
+
+---
+
+## Submitting Feedback
+
+`role` is one of `network_owner`, `user`, `researcher` (`IpScopeModels.FEEDBACK_ROLES`); `issueType` is one of
+`wrong_country`, `wrong_city`, `false_positive_vpn`, `false_positive_hosting`, `false_positive_tor`,
+`virtual_location_mismatch`, `other` (`IpScopeModels.FEEDBACK_ISSUE_TYPES`).
+
+```java
+import io.ipscope.sdk.IpScopeClient;
+import io.ipscope.sdk.IpScopeModels.FeedbackSubmissionInput;
+import io.ipscope.sdk.IpScopeModels.FeedbackSubmissionResponse;
+import java.util.Map;
+
+public class FeedbackExample {
+    public static void main(String[] args) {
+        IpScopeClient client = new IpScopeClient("<public>:<private>");
+
+        FeedbackSubmissionInput feedback = new FeedbackSubmissionInput(
+                "203.0.113.0/24", "network_owner", "wrong_country", Map.of("country_code", "DE"))
+                .withEvidenceUrl("https://example.net/geofeed.csv")
+                .withContact("noc@example.net", true);
+
+        FeedbackSubmissionResponse receipt = client.submitFeedback(feedback);
+        System.out.println(receipt.id() + " " + receipt.status() + " " + receipt.createdAt());
     }
 }
 ```

@@ -24,12 +24,14 @@ jobs:
         with:
           distribution: "temurin"
           java-version: ${{ matrix.java-version }}
+          cache: maven
 
-      - name: Compile SDK & Test Suite
+      - name: Build & run JUnit suite
+        run: mvn -B -ntp verify
+
+      - name: Check runtime has zero dependencies
         run: |
-          mkdir -p build/classes/main build/classes/test
-          javac -encoding UTF-8 --release 17 -d build/classes/main src/main/java/io/ipscope/sdk/*.java
-          javac -encoding UTF-8 --release 17 -cp build/classes/main -d build/classes/test src/test/java/io/ipscope/sdk/*.java
-
-      - name: Run Verification Suite
-        run: java -cp build/classes/main:build/classes/test io.ipscope.sdk.IpScopeClientTest
+          mvn -B -ntp -q dependency:list -DincludeScope=runtime -DoutputFile=runtime-deps.txt
+          if grep -q ':.*:.*:' runtime-deps.txt; then
+            echo "Unexpected runtime dependencies:"; cat runtime-deps.txt; exit 1
+          fi
